@@ -355,6 +355,36 @@ test("explicit task policy is not overridden by a risk score", () => {
   assert.equal(decision.policySource, "novel");
 });
 
+test("unclassified runtime assessment can consume the remaining automatic retry", () => {
+  const decision = resolveDirectorIssueDecision({
+    occurrence: occurrence("runtime.unclassified", {
+      hasUsableOutput: false,
+      attempt: 0,
+      suggestedAction: "auto_retry",
+      canPause: false,
+    }),
+    policy: DEFAULT_DIRECTOR_ISSUE_POLICY,
+  });
+  assert.equal(decision.action, "auto_retry");
+  assert.equal(decision.locked, false);
+});
+
+test("unclassified runtime assessment cannot pause after declaring pause unsafe", () => {
+  const decision = resolveDirectorIssueDecision({
+    occurrence: occurrence("runtime.unclassified", {
+      hasUsableOutput: false,
+      attempt: 1,
+      suggestedAction: "auto_retry",
+      canPause: false,
+    }),
+    policy: DEFAULT_DIRECTOR_ISSUE_POLICY,
+  });
+  assert.equal(decision.action, "fail_task");
+  assert.equal(decision.locked, true);
+  assert.equal(decision.policySource, "safety");
+  assert.equal(decision.retryExhaustedAction, "fail_task");
+});
+
 test("AI classification runs only for unclassified runtime issues", async () => {
   const originalRunStructuredPrompt = promptRunner.runStructuredPrompt;
   const originalRecordEvent = directorAutomationLedgerEventService.recordEvent;
@@ -397,6 +427,47 @@ test("AI classification runs only for unclassified runtime issues", async () => 
     });
     assert.equal(promptCalls.length, 1);
     assert.equal(result.occurrence.issueCode, "runtime.service_unavailable");
+    assert.equal(result.occurrence.suggestedAction, "auto_retry");
+    assert.equal(result.occurrence.canPause, false);
+    assert.equal(result.decision.action, "auto_retry");
+  } finally {
+    promptRunner.runStructuredPrompt = originalRunStructuredPrompt;
+    directorAutomationLedgerEventService.recordEvent = originalRecordEvent;
+  }
+});
+
+test("AI action is applied when a runtime issue remains unclassified", async () => {
+  const originalRunStructuredPrompt = promptRunner.runStructuredPrompt;
+  const originalRecordEvent = directorAutomationLedgerEventService.recordEvent;
+  let appliedDecision = null;
+  promptRunner.runStructuredPrompt = async () => ({
+    output: {
+      issueCode: "runtime.unclassified",
+      riskScore: 5,
+      summary: "模型未返回完整可用的结构化结果。",
+      evidence: "传输层结构化输出失败，重试 0/1。",
+      suggestedAction: "auto_retry",
+      canPause: false,
+    },
+  });
+  directorAutomationLedgerEventService.recordEvent = async () => undefined;
+  try {
+    const result = await directorIssueService.reportIssue({
+      issueGovernanceVersion: 1,
+      taskId: "task-unclassified-action",
+      novelId: "novel-unclassified-action",
+      issueCode: "runtime.unclassified",
+      stage: "chapter_generation",
+      summary: "章节生成失败。",
+      fingerprint: "unclassified-action:chapter-199:0",
+      policy: DEFAULT_DIRECTOR_ISSUE_POLICY,
+      hasUsableOutput: false,
+      attempt: 0,
+      applyAction: async (decision) => { appliedDecision = decision; },
+    });
+    assert.equal(result.occurrence.issueCode, "runtime.unclassified");
+    assert.equal(result.decision.action, "auto_retry");
+    assert.equal(appliedDecision.action, "auto_retry");
   } finally {
     promptRunner.runStructuredPrompt = originalRunStructuredPrompt;
     directorAutomationLedgerEventService.recordEvent = originalRecordEvent;

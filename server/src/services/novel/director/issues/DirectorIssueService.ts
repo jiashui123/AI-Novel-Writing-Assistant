@@ -110,6 +110,8 @@ export class DirectorIssueService {
       chapterId: input.chapterId,
       chapterOrder: input.chapterOrder,
       riskScore: forcedScore ?? assessment?.riskScore ?? null,
+      suggestedAction: assessment?.suggestedAction,
+      canPause: assessment?.canPause,
       qualityScores: input.qualityScores,
       attempt: input.attempt ?? 0,
       maxAttempts,

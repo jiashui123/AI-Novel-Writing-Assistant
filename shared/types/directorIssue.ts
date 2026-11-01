@@ -219,6 +219,8 @@ export const directorIssueOccurrenceSchema = z.object({
   chapterId: z.string().trim().optional(),
   chapterOrder: z.number().int().positive().optional(),
   riskScore: z.number().int().min(1).max(8).nullable().optional(),
+  suggestedAction: directorIssueActionSchema.optional(),
+  canPause: z.boolean().optional(),
   qualityScores: z.record(z.string(), z.number()).optional(),
   attempt: z.number().int().nonnegative().default(0),
   maxAttempts: z.number().int().nonnegative().default(0),
@@ -253,7 +255,8 @@ export function mergeDirectorIssuePolicy(
 }
 
 export function resolveDirectorIssueDecision(input: {
-  occurrence: Pick<DirectorIssueOccurrence, "issueCode" | "riskScore" | "attempt" | "maxAttempts" | "hasUsableOutput" | "runMode">;
+  occurrence: Pick<DirectorIssueOccurrence,
+    "issueCode" | "riskScore" | "attempt" | "maxAttempts" | "hasUsableOutput" | "runMode" | "suggestedAction" | "canPause">;
   policy: DirectorIssuePolicy;
   policySource?: DirectorIssueDecision["policySource"];
 }): DirectorIssueDecision {
@@ -263,6 +266,21 @@ export function resolveDirectorIssueDecision(input: {
   let locked = false;
   let reason = `按${configured ? "当前" : "默认"}治理规则处理。`;
 
+  const assessedAction = input.occurrence.suggestedAction;
+  const usesUnclassifiedAssessment = input.occurrence.issueCode === "runtime.unclassified"
+    && assessedAction !== undefined;
+  if (usesUnclassifiedAssessment && assessedAction !== "pause_for_manual") {
+    action = assessedAction;
+    reason = "按 AI 结构化问题评估建议处理。";
+  }
+
+  if (usesUnclassifiedAssessment
+    && input.occurrence.suggestedAction === "pause_for_manual"
+    && input.occurrence.canPause !== false) {
+    action = "pause_for_manual";
+    reason = "AI 结构化问题评估确认需要人工处理。";
+  }
+
   if (entry.enforcedAction) {
     action = entry.enforcedAction;
     locked = true;
@@ -270,13 +288,29 @@ export function resolveDirectorIssueDecision(input: {
   }
 
   const maxAttempts = input.policy.maxAutomaticRetries ?? DEFAULT_DIRECTOR_ISSUE_POLICY.maxAutomaticRetries;
+  const assessmentDisallowsPause = usesUnclassifiedAssessment && input.occurrence.canPause === false;
+  const retryExhaustedAction = assessmentDisallowsPause
+    ? input.occurrence.hasUsableOutput ? "continue_with_warning" : "fail_task"
+    : entry.exhaustedAction;
+  if (action === "pause_for_manual" && assessmentDisallowsPause) {
+    action = input.occurrence.attempt < maxAttempts
+      ? "auto_retry"
+      : retryExhaustedAction;
+    locked = input.occurrence.attempt >= maxAttempts && !input.occurrence.hasUsableOutput;
+    reason = input.occurrence.attempt < maxAttempts
+      ? "AI 结构化问题评估判定当前问题不可暂停，先使用剩余自动重试额度。"
+      : "AI 结构化问题评估判定当前问题不可暂停，且自动重试额度已耗尽。";
+  }
   if (action === "auto_retry" && input.occurrence.attempt >= maxAttempts) {
-    action = entry.exhaustedAction;
+    action = retryExhaustedAction;
+    locked = assessmentDisallowsPause && !input.occurrence.hasUsableOutput;
     reason = `自动重试已达到 ${maxAttempts} 次上限。`;
   }
 
   if (action === "continue_with_warning" && !input.occurrence.hasUsableOutput) {
-    action = entry.exhaustedAction === "continue_with_warning" ? "pause_for_manual" : entry.exhaustedAction;
+    action = assessmentDisallowsPause
+      ? "fail_task"
+      : entry.exhaustedAction === "continue_with_warning" ? "pause_for_manual" : entry.exhaustedAction;
     locked = true;
     reason = "当前没有可用正文或已保存产物，不能仅记录警告后继续。";
   }
@@ -287,6 +321,6 @@ export function resolveDirectorIssueDecision(input: {
     reason,
     locked,
     policySource: locked ? "safety" : (input.policySource ?? "task_snapshot"),
-    retryExhaustedAction: entry.exhaustedAction,
+    retryExhaustedAction,
   };
 }
