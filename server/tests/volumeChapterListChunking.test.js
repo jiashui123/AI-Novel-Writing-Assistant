@@ -227,9 +227,11 @@ test("single-beat generation does not repeat completed beat titles in locked con
   const document = createDocument();
   const originalRunStructuredPrompt = promptRunner.runStructuredPrompt;
   let receivedPromptInput = null;
+  let receivedOptions = null;
 
-  promptRunner.runStructuredPrompt = async ({ promptInput }) => {
+  promptRunner.runStructuredPrompt = async ({ promptInput, options }) => {
     receivedPromptInput = promptInput;
+    receivedOptions = options;
     return {
       output: {
         beatKey: "midpoint_turn",
@@ -259,6 +261,7 @@ test("single-beat generation does not repeat completed beat titles in locked con
 
     assert.match(receivedPromptInput.previousBeatChapterSummary, /旧开卷一/);
     assert.equal(receivedPromptInput.preservedBeatChapterSummary, "none");
+    assert.equal(receivedOptions.maxTokens, undefined, "chapter list generation must preserve the configured planner output budget");
   } finally {
     promptRunner.runStructuredPrompt = originalRunStructuredPrompt;
   }
