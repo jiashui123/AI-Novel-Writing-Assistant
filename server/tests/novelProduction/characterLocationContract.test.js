@@ -18,3 +18,16 @@ test('older extraction checkpoints remain reusable without fabricated location c
   const parsed = chapterArtifactDeltaOutputSchema.parse({summary:'旧正文',stateDeltas:{},syncPlan:{reason:'无位置记录'},confidence:0.9});
   assert.deepEqual(parsed.characterLocationDeltas, []);
 });
+
+test('blank nullable locations normalize to null instead of failing the full artifact extraction', () => {
+  const parsed = chapterArtifactDeltaOutputSchema.parse({
+    summary:'甲首次在未知地点现身。',stateDeltas:{},syncPlan:{reason:'位置起点未知'},confidence:0.9,
+    characterLocationDeltas:[{
+      characterId:'a',characterName:'甲',fromLocation:'   ',locationName:'',
+      movementType:'uncertain',timeContext:'present',continuityStatus:'unexplained',
+      evidence:'甲在雾中睁开眼。',explanation:'正文没有给出可确认的地点。',
+    }],
+  });
+  assert.equal(parsed.characterLocationDeltas[0].fromLocation, null);
+  assert.equal(parsed.characterLocationDeltas[0].locationName, null);
+});
