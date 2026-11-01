@@ -1,11 +1,19 @@
 import { z } from "zod";
 
+const normalizeBlankLocation = (value: unknown): unknown => (
+  typeof value === "string" && value.trim().length === 0 ? null : value
+);
+const nullableLocationText = z.preprocess(
+  normalizeBlankLocation,
+  z.string().trim().min(1).nullable(),
+);
+
 /** AI determines story-time semantics; consumers validate identity and evidence. */
 export const characterLocationDeltaSchema = z.object({
   characterId: z.string().trim().min(1),
   characterName: z.string().trim().min(1),
-  fromLocation: z.string().trim().min(1).nullable().optional(),
-  locationName: z.string().trim().min(1).nullable(),
+  fromLocation: z.preprocess(normalizeBlankLocation, z.string().trim().min(1).nullable().optional()),
+  locationName: nullableLocationText,
   movementType: z.enum(["stay", "move", "reported", "uncertain"]),
   timeContext: z.enum(["present", "flashback", "dream", "plan", "hearsay"]),
   continuityStatus: z.enum(["consistent", "unexplained", "conflicting"]),
