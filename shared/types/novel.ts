@@ -1157,6 +1157,49 @@ export interface AuditIssue {
   updatedAt: string;
 }
 
+export type ChapterContinuitySubjectType =
+  | "character_profile"
+  | "character_state"
+  | "relationship"
+  | "location"
+  | "knowledge"
+  | "resource"
+  | "timeline"
+  | "world"
+  | "other";
+
+export type ChapterContinuityClassification =
+  | "consistent"
+  | "legitimate_progression"
+  | "intentional_deception"
+  | "new_information"
+  | "hard_contradiction"
+  | "insufficient_evidence";
+
+export type ChapterContinuityRecommendedAction =
+  | "keep_current"
+  | "append_state"
+  | "preserve_fact_and_mark_subjective"
+  | "revise_current"
+  | "manual_review";
+
+export interface ChapterContinuityCheck {
+  subject: string;
+  subjectType: ChapterContinuitySubjectType;
+  attribute: string;
+  affectedCharacterNames: string[];
+  previousFact: string;
+  currentFact: string;
+  previousEvidence: string;
+  currentEvidence: string;
+  evidenceSource: "previous_chapter" | "character_baseline";
+  classification: ChapterContinuityClassification;
+  verdict: "consistent" | "conflict" | "uncertain";
+  recommendedAction: ChapterContinuityRecommendedAction;
+  reason: string;
+  issueCode: string | null;
+}
+
 export interface AuditReport {
   id: string;
   novelId: string;

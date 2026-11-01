@@ -77,6 +77,8 @@ AI 分类固定为：
 
 角色资产控制台的智能层展示“他现在如何理解局面、想做什么、最在意什么、可能误判什么、受压时怎样行动”，并展示来源、证据与置信度。页面需要明确说明“这是 AI 推断，不会自动改写小说正史”。
 
+章节创作页的资料诊断区展示连续性裁决，不在运行记录提供修复动作。投影必须从验收报告中读取完整结构化合同，合并同次验收在不同审计分类下产生的重复副本，并同时展示旧事实、本章事实和两侧原文证据。损坏、缺字段或分类—结论—动作不一致的历史载荷必须忽略，不能靠关键词推测结论。只有 `hard_contradiction` 提供修复当前章的入口；`legitimate_progression`、`intentional_deception`、`new_information` 只解释变化，`insufficient_evidence` 引导人工核对。
+
 思路线是角色对话的认知底座：作者可以在角色页与角色自然交谈，但角色必须受这份主观状态和正史边界约束，不能退化为服从指令的通用助手。对话中沉淀的软性影响必须经过作者一键确认，才可进入后续章节上下文；它也不能自动改写正史事实。
 
 关系多路线推演和 IF 推演仍应作为独立草稿能力，不得混入角色对话。
@@ -99,6 +101,7 @@ AI 分类固定为：
 - `server/src/prompting/prompts/novel/chapterArtifactDelta.prompts.ts`
 - `server/src/prompting/prompts/novel/chapterLayeredContext*.ts`
 - `client/src/pages/novels/components/characterWorkspace/CharacterIntelligenceTab.tsx`
+- `client/src/pages/novels/components/chapterInsights/CharacterContinuityReviewPanel.tsx`
 
 ## Source Documents
 

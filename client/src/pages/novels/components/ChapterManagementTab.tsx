@@ -279,6 +279,14 @@ export default function ChapterManagementTab(props: ChapterTabViewProps) {
                   repairStreamingChapterLabel={repairStreamingChapterLabel}
                   repairRunStatus={repairRunStatus}
                   onAbortRepair={onAbortRepair}
+                  onRepairChapter={() => {
+                    setAssetTab("repair");
+                    onAutoRepair();
+                  }}
+                  isRepairingChapter={Boolean(
+                    isRepairStreaming
+                    && repairStreamingChapterId === selectedChapter?.id
+                  )}
                 />
               </TabsContent>
               <TabsContent value="agent" className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">

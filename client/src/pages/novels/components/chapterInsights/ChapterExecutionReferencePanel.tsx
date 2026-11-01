@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StreamOutput from "@/components/common/StreamOutput";
+import CharacterContinuityReviewPanel from "./CharacterContinuityReviewPanel";
 import {
   ChapterRuntimeAuditCard,
   ChapterRuntimeContextCard,
@@ -61,6 +62,8 @@ interface ChapterExecutionReferencePanelProps {
   repairStreamingChapterLabel?: string | null;
   repairRunStatus?: Extract<SSEFrame, { type: "run_status" }> | null;
   onAbortRepair: () => void;
+  onRepairChapter: () => void;
+  isRepairingChapter: boolean;
 }
 
 function PanelHintCard(props: { title: string; content: string }) {
@@ -127,6 +130,8 @@ export default function ChapterExecutionReferencePanel(props: ChapterExecutionRe
     repairStreamingChapterLabel,
     repairRunStatus,
     onAbortRepair,
+    onRepairChapter,
+    isRepairingChapter,
   } = props;
 
   if (!selectedChapter) {
@@ -256,6 +261,11 @@ export default function ChapterExecutionReferencePanel(props: ChapterExecutionRe
         </TabsContent>
 
         <TabsContent value="quality" className="space-y-3">
+          <CharacterContinuityReviewPanel
+            auditReports={chapterAuditReports}
+            onRepairChapter={onRepairChapter}
+            isRepairingChapter={isRepairingChapter}
+          />
           <div className="grid grid-cols-2 gap-3">
             <MetricBadge label="总体" value={String(chapterQualityReport?.overall ?? selectedChapter.qualityScore ?? "-")} />
             <MetricBadge label="连贯性" value={String(chapterQualityReport?.coherence ?? "-")} />
