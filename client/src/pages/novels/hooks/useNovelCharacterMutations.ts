@@ -2,6 +2,7 @@ import { useMutation, useQuery, type QueryClient } from "@tanstack/react-query";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import {
   applyBatchCharacterVisibleProfiles,
+  applyCharacterCoreProfile,
   applyCharacterVisibleProfile,
   applySupplementalCharacter,
   checkCharacterAgainstWorld,
@@ -9,6 +10,7 @@ import {
   deleteNovelCharacter,
   evolveNovelCharacter,
   generateBatchCharacterVisibleProfiles,
+  generateCharacterCoreProfile,
   generateCharacterVisibleProfile,
   generateSupplementalCharacters,
   getCharacterTimeline,
@@ -41,6 +43,16 @@ interface CharacterFormState {
   personality: string;
   background: string;
   development: string;
+  storyFunction: string;
+  relationToProtagonist: string;
+  outerGoal: string;
+  innerNeed: string;
+  fear: string;
+  wound: string;
+  misbelief: string;
+  secret: string;
+  moralLine: string;
+  firstImpression: string;
   appearance: string;
   physique: string;
   attireStyle: string;
@@ -168,6 +180,39 @@ export function useNovelCharacterMutations(input: UseNovelCharacterMutationsInpu
     },
   });
 
+  const generateCoreProfileMutation = useMutation({
+    mutationFn: (userGuidance?: string) =>
+      generateCharacterCoreProfile(id, selectedCharacterId, {
+        provider: llm.provider,
+        model: llm.model,
+        temperature: 0.4,
+        userGuidance: userGuidance?.trim() || undefined,
+      }),
+    onSuccess: (response) => {
+      const count = Object.keys(response.data?.fields ?? {}).length;
+      setCharacterMessage(count > 0 ? `已生成 ${count} 项角色核心资料建议，请确认后写入。` : "当前角色没有需要补写的核心资料。");
+    },
+    onError: (error) => {
+      setCharacterMessage(error instanceof Error ? error.message : "角色核心资料生成失败。");
+    },
+  });
+
+  const applyCoreProfileMutation = useMutation({
+    mutationFn: () => applyCharacterCoreProfile(
+      id,
+      selectedCharacterId,
+      generateCoreProfileMutation.data?.data?.fields ?? {},
+    ),
+    onSuccess: async (response) => {
+      const count = response.data?.appliedFields.length ?? 0;
+      setCharacterMessage(count > 0 ? `已写入 ${count} 项角色核心资料。` : "没有新的角色核心资料需要写入。");
+      await invalidateCharacterViews(queryClient, id, selectedCharacterId || "none");
+    },
+    onError: (error) => {
+      setCharacterMessage(error instanceof Error ? error.message : "角色核心资料写入失败。");
+    },
+  });
+
   const applyVisibleProfileMutation = useMutation({
     mutationFn: () => {
       const suggestion = generateVisibleProfileMutation.data?.data;
@@ -253,6 +298,16 @@ export function useNovelCharacterMutations(input: UseNovelCharacterMutationsInpu
         personality: characterForm.personality,
         background: characterForm.background,
         development: characterForm.development,
+        storyFunction: characterForm.storyFunction,
+        relationToProtagonist: characterForm.relationToProtagonist,
+        outerGoal: characterForm.outerGoal,
+        innerNeed: characterForm.innerNeed,
+        fear: characterForm.fear,
+        wound: characterForm.wound,
+        misbelief: characterForm.misbelief,
+        secret: characterForm.secret,
+        moralLine: characterForm.moralLine,
+        firstImpression: characterForm.firstImpression,
         appearance: characterForm.appearance,
         physique: characterForm.physique,
         attireStyle: characterForm.attireStyle,
@@ -373,6 +428,8 @@ export function useNovelCharacterMutations(input: UseNovelCharacterMutationsInpu
     syncAllTimelineMutation,
     evolveCharacterMutation,
     generateVisibleProfileMutation,
+    generateCoreProfileMutation,
+    applyCoreProfileMutation,
     applyVisibleProfileMutation,
     generateBatchVisibleProfilesMutation,
     applyBatchVisibleProfilesMutation,

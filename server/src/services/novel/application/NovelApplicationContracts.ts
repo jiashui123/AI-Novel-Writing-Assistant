@@ -104,6 +104,8 @@ export interface NovelApplicationServices {
   applySupplementalCharacter: NovelApplicationMethod;
   deleteCharacterCastOption: NovelApplicationMethod;
   clearCharacterCastOptions: NovelApplicationMethod;
+  generateCharacterCoreProfile: NovelApplicationMethod;
+  applyCharacterCoreProfile: NovelApplicationMethod;
   generateCharacterVisibleProfile: NovelApplicationMethod;
   generateBatchCharacterVisibleProfiles: NovelApplicationMethod;
   applyCharacterVisibleProfile: NovelApplicationMethod;
@@ -223,6 +225,8 @@ export const novelApplicationServiceMethodNames = [
   "applySupplementalCharacter",
   "deleteCharacterCastOption",
   "clearCharacterCastOptions",
+  "generateCharacterCoreProfile",
+  "applyCharacterCoreProfile",
   "generateCharacterVisibleProfile",
   "generateBatchCharacterVisibleProfiles",
   "applyCharacterVisibleProfile",

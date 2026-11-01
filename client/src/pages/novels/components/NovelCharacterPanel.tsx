@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type {
   BaseCharacter,
   Character,
+  CharacterCoreProfileSuggestion,
   CharacterTimeline,
   CharacterVisibleProfileBatchResult,
   CharacterVisibleProfileSuggestion,
@@ -59,6 +60,11 @@ interface NovelCharacterPanelProps {
   isSyncingAllTimeline: boolean;
   onEvolveCharacter: () => void;
   isEvolvingCharacter: boolean;
+  onGenerateCoreProfile: (userGuidance?: string) => void;
+  isGeneratingCoreProfile: boolean;
+  coreProfileSuggestion?: CharacterCoreProfileSuggestion | null;
+  onApplyCoreProfile: () => void;
+  isApplyingCoreProfile: boolean;
   onGenerateVisibleProfile: (userGuidance?: string) => void;
   isGeneratingVisibleProfile: boolean;
   visibleProfileSuggestion?: CharacterVisibleProfileSuggestion | null;
@@ -118,6 +124,11 @@ export default function NovelCharacterPanel(props: NovelCharacterPanelProps) {
     isSyncingAllTimeline,
     onEvolveCharacter,
     isEvolvingCharacter,
+    onGenerateCoreProfile,
+    isGeneratingCoreProfile,
+    coreProfileSuggestion,
+    onApplyCoreProfile,
+    isApplyingCoreProfile,
     onGenerateVisibleProfile,
     isGeneratingVisibleProfile,
     visibleProfileSuggestion,
@@ -216,6 +227,11 @@ export default function NovelCharacterPanel(props: NovelCharacterPanelProps) {
         isSyncingAllTimeline={isSyncingAllTimeline}
         onWorldCheck={onWorldCheck}
         isCheckingWorld={isCheckingWorld}
+        onGenerateCoreProfile={onGenerateCoreProfile}
+        isGeneratingCoreProfile={isGeneratingCoreProfile}
+        coreProfileSuggestion={coreProfileSuggestion}
+        onApplyCoreProfile={onApplyCoreProfile}
+        isApplyingCoreProfile={isApplyingCoreProfile}
         onGenerateVisibleProfile={onGenerateVisibleProfile}
         isGeneratingVisibleProfile={isGeneratingVisibleProfile}
         visibleProfileSuggestion={visibleProfileSuggestion}

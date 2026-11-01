@@ -7,6 +7,7 @@ import type {DirectorV2CharacterEnrichmentPayload} from "../../../../events/side
 import {isCurrentV2ChapterProductionCompleted} from "../../production/completion";
 import {CHAPTER_ARTIFACT_BOUNDARY_TYPE} from "../../runtime/artifactSync";
 import {CharacterVisibleProfileService, VISIBLE_PROFILE_FIELDS} from "../../characterProfile/CharacterVisibleProfileService";
+import {CharacterCoreProfileService, CORE_PROFILE_FIELDS} from "../../characterProfile/CharacterCoreProfileService";
 import {characterMindService} from "../../characterMind/CharacterMindService";
 import {directorV2Available} from "../../../../modules/novel/director-routing";
 
@@ -96,23 +97,40 @@ export class DirectorV2CharacterEnrichmentService {
         stage: "character_enrichment"}, async () => {
         // Shared world/event modules also import this adapter. Resolve collaborators after module initialization.
         const profiles = new CharacterVisibleProfileService();
+        const coreProfiles = new CharacterCoreProfileService();
         for (const character of characters) {
-          if (VISIBLE_PROFILE_FIELDS.every(field => hasText(character[field]))) continue;
+          const needsCoreProfile = CORE_PROFILE_FIELDS.some(field => !hasText(character[field]));
+          const needsVisibleProfile = VISIBLE_PROFILE_FIELDS.some(field => !hasText(character[field]));
+          if (!needsCoreProfile && !needsVisibleProfile) continue;
           await this.assertWritable(payload, this.db, lease);
-          const suggestion = await profiles.generateCharacterVisibleProfile(payload.novelId, character.id, {
-            provider: owner.provider, model: owner.model, temperature: owner.temperature,
-            userGuidance: "只补空白的稳定外显资料；保留所有已有设定，不补临时伤势、物品归属或人物位置。",
-          });
+          const coreSuggestion = needsCoreProfile
+            ? await coreProfiles.generateCharacterCoreProfile(payload.novelId, character.id, {
+              provider: owner.provider, model: owner.model, temperature: owner.temperature,
+              userGuidance: "只补空白的稳定角色内核；保留所有已有设定，不改写正文产生的动态状态。",
+            })
+            : null;
+          const visibleSuggestion = needsVisibleProfile
+            ? await profiles.generateCharacterVisibleProfile(payload.novelId, character.id, {
+              provider: owner.provider, model: owner.model, temperature: owner.temperature,
+              userGuidance: "只补空白的稳定外显资料；保留所有已有设定，不补临时伤势、物品归属或人物位置。",
+            })
+            : null;
           await this.db.$transaction(async tx => {
             await this.assertWritable(payload, tx, lease);
             const current = await tx.character.findFirst({where: {id: character.id, novelId: payload.novelId}});
             if (!current) return;
+            for (const field of CORE_PROFILE_FIELDS) {
+              if (hasText(current[field]) || !hasText(coreSuggestion?.fields[field])) continue;
+              await tx.character.updateMany({where: {id: character.id, novelId: payload.novelId,
+                [field]: current[field], novel: {directorEpoch: payload.executionEpoch,
+                  OR: [{directorVersion: "v2"}, {directorVersion: null}]}}, data: {[field]: coreSuggestion.fields[field]}});
+            }
             for (const field of VISIBLE_PROFILE_FIELDS) {
-              if (hasText(current[field]) || !hasText(suggestion.fields[field])) continue;
+              if (hasText(current[field]) || !hasText(visibleSuggestion?.fields[field])) continue;
               // Preserve edits made during the model call, including a concurrent fill of this field.
               await tx.character.updateMany({where: {id: character.id, novelId: payload.novelId,
                 [field]: current[field], novel: {directorEpoch: payload.executionEpoch,
-                  OR: [{directorVersion: "v2"}, {directorVersion: null}]}}, data: {[field]: suggestion.fields[field]}});
+                  OR: [{directorVersion: "v2"}, {directorVersion: null}]}}, data: {[field]: visibleSuggestion.fields[field]}});
             }
           });
         }

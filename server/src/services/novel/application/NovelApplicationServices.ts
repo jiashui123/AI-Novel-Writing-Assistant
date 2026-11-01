@@ -7,6 +7,7 @@ import { NovelWorldManualService } from "../worldContext/NovelWorldManualService
 import { CharacterPreparationService } from "../characterPrep/CharacterPreparationService";
 import { CharacterDynamicsService } from "../dynamics/CharacterDynamicsService";
 import { CharacterVisibleProfileService } from "../characterProfile/CharacterVisibleProfileService";
+import { CharacterCoreProfileService } from "../characterProfile/CharacterCoreProfileService";
 import { CharacterMindService } from "../characterMind/CharacterMindService";
 import { CharacterInfluenceService } from "../characterInfluence/CharacterInfluenceService";
 import { CharacterDialogueService } from "../characterDialogue/CharacterDialogueService";
@@ -50,6 +51,7 @@ export class DefaultNovelApplicationServices {
   private readonly characterPreparationService = new CharacterPreparationService();
   private readonly characterDynamicsService = new CharacterDynamicsService();
   private readonly characterVisibleProfileService = new CharacterVisibleProfileService();
+  private readonly characterCoreProfileService = new CharacterCoreProfileService();
   private readonly characterMindService = new CharacterMindService();
   private readonly characterInfluenceService = new CharacterInfluenceService();
   private readonly characterDialogueService = new CharacterDialogueService();
@@ -630,6 +632,17 @@ export class DefaultNovelApplicationServices {
 
   generateCharacterVisibleProfile(...args: Parameters<CharacterVisibleProfileService["generateCharacterVisibleProfile"]>) {
     return this.characterVisibleProfileService.generateCharacterVisibleProfile(...args);
+  }
+
+  generateCharacterCoreProfile(...args: Parameters<CharacterCoreProfileService["generateCharacterCoreProfile"]>) {
+    return this.characterCoreProfileService.generateCharacterCoreProfile(...args);
+  }
+
+  async applyCharacterCoreProfile(...args: Parameters<CharacterCoreProfileService["applyCharacterCoreProfile"]>) {
+    const [novelId] = args;
+    const result = await this.characterCoreProfileService.applyCharacterCoreProfile(...args);
+    await this.characterDynamicsService.rebuildDynamics(novelId, { sourceType: "rebuild_projection" }).catch(() => null);
+    return result;
   }
 
   generateBatchCharacterVisibleProfiles(...args: Parameters<CharacterVisibleProfileService["generateBatchVisibleProfiles"]>) {

@@ -422,6 +422,10 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/novel/coreCharacter.prompts").characterEvolutionPrompt as UnknownPromptAsset,
   },
   {
+    key: "novel.character.core_profile.complete@v1",
+    load: () => require("../prompts/novel/characterCoreProfile.prompts").characterCoreProfileCompletionPrompt as UnknownPromptAsset,
+  },
+  {
     key: "novel.character.visible_profile.complete@v2",
     load: () => require("../prompts/novel/characterVisibleProfile.prompts").characterVisibleProfileCompletionPrompt as UnknownPromptAsset,
   },

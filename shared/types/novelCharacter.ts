@@ -109,6 +109,40 @@ export interface CharacterVisibleProfileApplyResult {
   warnings: string[];
 }
 
+export type CharacterCoreProfileField =
+  | "storyFunction"
+  | "relationToProtagonist"
+  | "personality"
+  | "background"
+  | "development"
+  | "outerGoal"
+  | "innerNeed"
+  | "fear"
+  | "wound"
+  | "misbelief"
+  | "secret"
+  | "moralLine"
+  | "firstImpression";
+
+export type CharacterCoreProfileFields = Partial<Record<CharacterCoreProfileField, string | null>>;
+
+export interface CharacterCoreProfileSuggestion {
+  characterId: string;
+  characterName: string;
+  fields: CharacterCoreProfileFields;
+  skippedFields: Partial<Record<CharacterCoreProfileField, string>>;
+  confidence: number;
+  warnings: string[];
+  hasApplicableChanges: boolean;
+}
+
+export interface CharacterCoreProfileApplyResult {
+  character: Character;
+  appliedFields: CharacterCoreProfileField[];
+  skippedFields: Partial<Record<CharacterCoreProfileField, string>>;
+  warnings: string[];
+}
+
 export interface BaseCharacter {
   id: string;
   name: string;

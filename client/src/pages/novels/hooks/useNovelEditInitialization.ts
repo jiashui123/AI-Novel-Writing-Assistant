@@ -26,6 +26,16 @@ interface CharacterFormState {
   personality: string;
   background: string;
   development: string;
+  storyFunction: string;
+  relationToProtagonist: string;
+  outerGoal: string;
+  innerNeed: string;
+  fear: string;
+  wound: string;
+  misbelief: string;
+  secret: string;
+  moralLine: string;
+  firstImpression: string;
   appearance: string;
   physique: string;
   attireStyle: string;
@@ -66,6 +76,16 @@ const EMPTY_CHARACTER_FORM: CharacterFormState = {
   personality: "",
   background: "",
   development: "",
+  storyFunction: "",
+  relationToProtagonist: "",
+  outerGoal: "",
+  innerNeed: "",
+  fear: "",
+  wound: "",
+  misbelief: "",
+  secret: "",
+  moralLine: "",
+  firstImpression: "",
   appearance: "",
   physique: "",
   attireStyle: "",
@@ -214,6 +234,16 @@ export function useNovelEditInitialization({
       personality: selectedCharacter.personality ?? "",
       background: selectedCharacter.background ?? "",
       development: selectedCharacter.development ?? "",
+      storyFunction: selectedCharacter.storyFunction ?? "",
+      relationToProtagonist: selectedCharacter.relationToProtagonist ?? "",
+      outerGoal: selectedCharacter.outerGoal ?? "",
+      innerNeed: selectedCharacter.innerNeed ?? "",
+      fear: selectedCharacter.fear ?? "",
+      wound: selectedCharacter.wound ?? "",
+      misbelief: selectedCharacter.misbelief ?? "",
+      secret: selectedCharacter.secret ?? "",
+      moralLine: selectedCharacter.moralLine ?? "",
+      firstImpression: selectedCharacter.firstImpression ?? "",
       appearance: selectedCharacter.appearance ?? "",
       physique: selectedCharacter.physique ?? "",
       attireStyle: selectedCharacter.attireStyle ?? "",

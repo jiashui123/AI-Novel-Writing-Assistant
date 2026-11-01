@@ -8,6 +8,9 @@ import type {
 import type { StateCommitResult } from "@ai-novel/shared/types/canonicalState";
 import type {
   Character,
+  CharacterCoreProfileApplyResult,
+  CharacterCoreProfileFields,
+  CharacterCoreProfileSuggestion,
   CharacterCastApplyResult,
   CharacterCastOptionClearResult,
   CharacterCastOptionDeleteResult,
@@ -323,6 +326,35 @@ export async function evolveNovelCharacter(
   const { data } = await apiClient.post<ApiResponse<Character>>(
     `/novels/${id}/characters/${charId}/evolve`,
     payload ?? {},
+  );
+  return data;
+}
+
+export async function generateCharacterCoreProfile(
+  id: string,
+  charId: string,
+  payload?: {
+    provider?: LLMProvider;
+    model?: string;
+    temperature?: number;
+    userGuidance?: string;
+  },
+) {
+  const { data } = await apiClient.post<ApiResponse<CharacterCoreProfileSuggestion>>(
+    `/novels/${id}/characters/${charId}/core-profile/generate`,
+    payload ?? {},
+  );
+  return data;
+}
+
+export async function applyCharacterCoreProfile(
+  id: string,
+  charId: string,
+  fields: CharacterCoreProfileFields,
+) {
+  const { data } = await apiClient.post<ApiResponse<CharacterCoreProfileApplyResult>>(
+    `/novels/${id}/characters/${charId}/core-profile/apply`,
+    { fields },
   );
   return data;
 }

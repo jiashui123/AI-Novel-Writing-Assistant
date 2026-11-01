@@ -52,6 +52,11 @@ export default function CharacterAssetWorkspace(props: CharacterAssetWorkspacePr
     isSyncingAllTimeline,
     onWorldCheck,
     isCheckingWorld,
+    onGenerateCoreProfile,
+    isGeneratingCoreProfile,
+    coreProfileSuggestion,
+    onApplyCoreProfile,
+    isApplyingCoreProfile,
     onGenerateVisibleProfile,
     isGeneratingVisibleProfile,
     visibleProfileSuggestion,
@@ -166,6 +171,12 @@ export default function CharacterAssetWorkspace(props: CharacterAssetWorkspacePr
                   isSyncingAllTimeline={isSyncingAllTimeline}
                   onWorldCheck={onWorldCheck}
                   isCheckingWorld={isCheckingWorld}
+                  selectedCharacter={selectedCharacter}
+                  onGenerateCoreProfile={onGenerateCoreProfile}
+                  isGeneratingCoreProfile={isGeneratingCoreProfile}
+                  coreProfileSuggestion={coreProfileSuggestion}
+                  onApplyCoreProfile={onApplyCoreProfile}
+                  isApplyingCoreProfile={isApplyingCoreProfile}
                 />
               </TabsContent>
               <TabsContent value="visible" className="mt-4">

@@ -7,6 +7,7 @@ import type {
   StoryPlan,
   StoryStateSnapshot,
   Character,
+  CharacterCoreProfileSuggestion,
   CharacterTimeline,
   CharacterVisibleProfileBatchResult,
   CharacterVisibleProfileSuggestion,
@@ -527,6 +528,11 @@ export interface CharacterTabViewProps {
   isSyncingAllTimeline: boolean;
   onEvolveCharacter: () => void;
   isEvolvingCharacter: boolean;
+  onGenerateCoreProfile: (userGuidance?: string) => void;
+  isGeneratingCoreProfile: boolean;
+  coreProfileSuggestion?: CharacterCoreProfileSuggestion | null;
+  onApplyCoreProfile: () => void;
+  isApplyingCoreProfile: boolean;
   onGenerateVisibleProfile: (userGuidance?: string) => void;
   isGeneratingVisibleProfile: boolean;
   visibleProfileSuggestion?: CharacterVisibleProfileSuggestion | null;
@@ -549,6 +555,16 @@ export interface CharacterTabViewProps {
     personality: string;
     background: string;
     development: string;
+    storyFunction: string;
+    relationToProtagonist: string;
+    outerGoal: string;
+    innerNeed: string;
+    fear: string;
+    wound: string;
+    misbelief: string;
+    secret: string;
+    moralLine: string;
+    firstImpression: string;
     appearance: string;
     physique: string;
     attireStyle: string;
@@ -566,6 +582,16 @@ export interface CharacterTabViewProps {
       | "personality"
       | "background"
       | "development"
+      | "storyFunction"
+      | "relationToProtagonist"
+      | "outerGoal"
+      | "innerNeed"
+      | "fear"
+      | "wound"
+      | "misbelief"
+      | "secret"
+      | "moralLine"
+      | "firstImpression"
       | "appearance"
       | "physique"
       | "attireStyle"

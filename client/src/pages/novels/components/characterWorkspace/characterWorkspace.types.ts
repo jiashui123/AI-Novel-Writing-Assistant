@@ -1,5 +1,6 @@
 import type {
   Character,
+  CharacterCoreProfileSuggestion,
   CharacterGender,
   CharacterTimeline,
   CharacterVisibleProfileBatchResult,
@@ -31,6 +32,11 @@ export interface CharacterAssetWorkspaceProps {
   isSyncingAllTimeline: boolean;
   onWorldCheck: () => void;
   isCheckingWorld: boolean;
+  onGenerateCoreProfile: (userGuidance?: string) => void;
+  isGeneratingCoreProfile: boolean;
+  coreProfileSuggestion?: CharacterCoreProfileSuggestion | null;
+  onApplyCoreProfile: () => void;
+  isApplyingCoreProfile: boolean;
   onGenerateVisibleProfile: (userGuidance?: string) => void;
   isGeneratingVisibleProfile: boolean;
   visibleProfileSuggestion?: CharacterVisibleProfileSuggestion | null;

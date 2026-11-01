@@ -1,6 +1,8 @@
 import type { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type {
+  CharacterCoreProfileApplyResult,
+  CharacterCoreProfileSuggestion,
   CharacterVisibleProfileApplyResult,
   CharacterVisibleProfileBatchResult,
   CharacterVisibleProfileSuggestion,
@@ -38,9 +40,29 @@ const visibleProfileGenerateSchema = z.object({
   userGuidance: z.string().trim().max(1200).optional(),
 });
 
+const coreProfileFieldsSchema = z.object({
+  storyFunction: z.string().trim().nullable().optional(),
+  relationToProtagonist: z.string().trim().nullable().optional(),
+  personality: z.string().trim().nullable().optional(),
+  background: z.string().trim().nullable().optional(),
+  development: z.string().trim().nullable().optional(),
+  outerGoal: z.string().trim().nullable().optional(),
+  innerNeed: z.string().trim().nullable().optional(),
+  fear: z.string().trim().nullable().optional(),
+  wound: z.string().trim().nullable().optional(),
+  misbelief: z.string().trim().nullable().optional(),
+  secret: z.string().trim().nullable().optional(),
+  moralLine: z.string().trim().nullable().optional(),
+  firstImpression: z.string().trim().nullable().optional(),
+}).strict();
+
+const coreProfileApplySchema = z.object({ fields: coreProfileFieldsSchema });
+
 interface RegisterNovelCharacterVisibleProfileRoutesInput {
   router: Router;
   novelService: Pick<NovelApplicationServices,
+    | "generateCharacterCoreProfile"
+    | "applyCharacterCoreProfile"
     | "generateCharacterVisibleProfile"
     | "generateBatchCharacterVisibleProfiles"
     | "applyCharacterVisibleProfile"
@@ -59,6 +81,43 @@ export function registerNovelCharacterVisibleProfileRoutes(
     idParamsSchema,
     characterParamsSchema,
   } = input;
+
+  router.post(
+    "/:id/characters/:charId/core-profile/generate",
+    validate({ params: characterParamsSchema, body: visibleProfileGenerateSchema }),
+    async (req, res, next) => {
+      try {
+        const { id, charId } = req.params as z.infer<typeof characterParamsSchema>;
+        const data = await novelService.generateCharacterCoreProfile(id, charId, req.body as any);
+        res.status(200).json({
+          success: true,
+          data,
+          message: data.hasApplicableChanges ? "角色核心资料建议已生成。" : "当前角色没有需要补写的核心资料。",
+        } satisfies ApiResponse<CharacterCoreProfileSuggestion>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/:id/characters/:charId/core-profile/apply",
+    validate({ params: characterParamsSchema, body: coreProfileApplySchema }),
+    async (req, res, next) => {
+      try {
+        const { id, charId } = req.params as z.infer<typeof characterParamsSchema>;
+        const body = req.body as z.infer<typeof coreProfileApplySchema>;
+        const data = await novelService.applyCharacterCoreProfile(id, charId, body.fields);
+        res.status(200).json({
+          success: true,
+          data,
+          message: data.appliedFields.length ? "角色核心资料已写入。" : "没有新的核心资料需要写入。",
+        } satisfies ApiResponse<CharacterCoreProfileApplyResult>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
 
   router.post(
     "/:id/characters/:charId/visible-profile/generate",

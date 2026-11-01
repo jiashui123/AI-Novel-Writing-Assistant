@@ -44,6 +44,14 @@ Prompt 只能基于装配的正史、关系和最近章节材料推断，必须�
 
 `ChapterArtifactDeltaService` 直接把命中角色的 delta 合并成新快照，不增加第二条章节后置 LLM 链路。无相关变化时不写空快照，保留既有当前思路线。
 
+## 稳定角色内核补全
+
+角色内核是介于基础身份和动态状态之间的长期行为约束，包括故事作用、与主角关系、性格与压力反应、关键背景、成长方向、内外目标、恐惧、伤口、错误信念、秘密、道德底线和初见印象。它解释角色为何持续做出某类选择，但不能替代位置、资源、知情范围和当章目标等动态事实。
+
+手动补全与导演 V2 延后补全共用注册 PromptAsset `novel.character.core_profile.complete@v1`。模型必须结合书级承诺、世界上下文、宏观规划、现有角色资料和结构化关系生成建议；产品代码只验证结构并筛出空白字段，不得用关键词或正则拼接角色动机。所有写入都采用逐字段的提交前复核：作者或正文流程已填入的字段优先，AI 建议不得覆盖；生成期间发生并发编辑时也必须跳过该字段。
+
+手动入口位于角色档案页，先展示建议再由用户确认写入。导演 V2 的延后补全是正文后的可选副作用，失败只按副作用任务重试，不暂停章节生产。该能力只补稳定内核，不写临时伤势、位置、物品归属、当前情绪或一次性计划。
+
 ## 角色连续性裁决
 
 章节接收闸门复用同一次结构化 AI 验收，核对当前正文与角色章前基线、上一章正文之间的同主体同属性事实，不增加独立模型调用。章前基线只能从本章运行包中的参与角色、角色硬事实、关系阶段、位置来源和知情状态构建；每项生成可逐字引用的基线证据，验收结果必须声明证据来自上一章正文还是角色基线。运行时只验证证据归属、角色名、属性及分类合同，不用关键词替代 AI 的语义判断。
@@ -84,6 +92,7 @@ AI 分类固定为：
 ## Related Modules
 
 - `server/src/services/novel/characterMind/`
+- `server/src/services/novel/characterProfile/CharacterCoreProfileService.ts`
 - `server/src/services/novel/runtime/ChapterArtifactDeltaService.ts`
 - `server/src/services/novel/runtime/GenerationContextAssembler.ts`
 - `server/src/prompting/prompts/novel/characterMind.prompts.ts`

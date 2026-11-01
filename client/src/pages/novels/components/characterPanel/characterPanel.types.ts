@@ -19,6 +19,16 @@ export interface CharacterFormState {
   personality: string;
   background: string;
   development: string;
+  storyFunction: string;
+  relationToProtagonist: string;
+  outerGoal: string;
+  innerNeed: string;
+  fear: string;
+  wound: string;
+  misbelief: string;
+  secret: string;
+  moralLine: string;
+  firstImpression: string;
   appearance: string;
   physique: string;
   attireStyle: string;
