@@ -1,4 +1,5 @@
 export { buildAcceptanceCacheIdentity } from "./cacheIdentity";
+export { buildCharacterContinuityBaseline } from "./characterContinuityBaseline";
 export { describeAcceptanceFailure } from "./failure";
 export { currentChapterReviewRetryBudget, createPersistedChapterReviewRetryBudget,
   createTransientChapterReviewRetryBudget, withChapterReviewRetryBudget, ReviewRetryPersistenceError,

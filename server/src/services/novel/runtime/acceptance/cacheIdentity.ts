@@ -7,6 +7,7 @@ import { chapterAcceptanceAssessmentPrompt, resolveChapterAcceptanceOutputTokens
 import { promptSlotOverrideService } from "../../../../prompting/slots/PromptSlotOverrideService";
 import { resolveAdvancedPromptMessages } from "../../../../prompting/templates/templateRuntime";
 import type { ChapterAcceptanceAssessmentInput } from "../ChapterAcceptanceAssessmentService";
+import { buildCharacterContinuityBaseline } from "./characterContinuityBaseline";
 import { applyAcceptanceStyleContext, isAcceptanceStyleReviewEnabled, getAcceptanceStyleRuleIds, buildAcceptanceStyleSignals, getAcceptanceNarrativePov } from "./styleReview";
 
 function canonicalize(value: unknown): unknown {
@@ -37,6 +38,7 @@ export async function buildAcceptanceCacheIdentity(input: ChapterAcceptanceAsses
     novelTitle: input.novelTitle, chapterTitle: input.chapterTitle, chapterOrder: input.chapterOrder,
     targetWordCount: input.targetWordCount ?? null, content: input.content,
     previousChapterContent: input.contextPackage.previousChapterContent,
+    characterContinuityBaseline: buildCharacterContinuityBaseline(input.contextPackage),
     repairReviewBaseline: input.repairReviewBaseline,
     styleRewriteBaseline: input.styleRewriteBaseline,
     styleReviewEnabled: isAcceptanceStyleReviewEnabled(input.contextPackage),

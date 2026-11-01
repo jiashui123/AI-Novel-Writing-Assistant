@@ -245,6 +245,16 @@ export const chapterAcceptanceAssessmentSchema = z.object({
 
 export type ChapterAcceptanceAssessmentOutput = z.infer<typeof chapterAcceptanceAssessmentSchema>;
 
+export interface CharacterContinuityBaselineFact {
+  characterId: string;
+  characterName: string;
+  affectedCharacterNames: string[];
+  subjectType: "character_profile" | "character_state" | "relationship" | "location" | "knowledge" | "resource" | "timeline" | "world" | "other";
+  attribute: string;
+  value: string;
+  evidence: string;
+}
+
 export const chapterAcceptanceModelSchema = chapterAcceptanceAssessmentSchema.omit({styleReviewFailure: true}).extend({
   styleReview: acceptanceStyleReviewModelSchema.nullable().describe("必填：写法检测开启时返回风险报告对象，即使结论为人工确认也不得遗漏；检测关闭时为 null。"),
 });
@@ -257,6 +267,7 @@ export interface ChapterAcceptancePromptInput {
   targetWordCount?: number | null;
   content: string;
   previousChapterContent?: string | null;
+  characterContinuityBaseline?: CharacterContinuityBaselineFact[];
   styleReviewEnabled?: boolean;
   styleRuleIds?: string[];
   expectedNarrativePov?: import("@ai-novel/shared/types/novel").NarrativePov | null;
@@ -303,7 +314,7 @@ export const chapterAcceptanceAssessmentPrompt: PromptAsset<
   ChapterAcceptanceModelOutput
 > = {
   id: "novel.chapter.acceptance_assessment",
-  version: "v24",
+  version: "v25",
   cacheBoundary: {messageIndex:0,contentBlockIndex:0},
   taskType: "review",
   mode: "structured",
@@ -421,11 +432,15 @@ export const chapterAcceptanceAssessmentPrompt: PromptAsset<
       input.styleSignals ? `【机械候选线索：只供语义核对，不代表违规，不按命中加分】\n${renderStyleSignalEvidence(input.styleSignals)}` : "",
       input.styleReviewEnabled ? "【输出核对】styleReview 必填风险报告对象；无风险 observations=[]。所有证据连续复制正文，不得把概括写成原句。叙事写法建议只报告，不安排自动修文。" : "【输出核对】styleReview=null。",
     ].join("\n")),
-    ...(input.previousChapterContent?.trim() ? [new HumanMessage([
-      "【必须完成的前后章事实核对】先对照 recent_chapters 中上一章完整正文，再检查当前正文，不以规划或本章自洽替代前后章连续性。",
-      "返回 continuityChecks（选最关键1-2项）：subject、previousFact、currentFact、previousEvidence、currentEvidence、verdict（consistent/conflict/uncertain）、reason、issueCode（无冲突为null）。先分别提炼同一主体同一属性在两章中的事实，再判定是否相容；物品的物理载体、记载内容和归属是不同属性，不能用合理的归属交接来解释载体或记载内容被改写。优先核对反复使用的关键物品，其次位置、时间与知晓边界，不选容易一致的次要细节。",
-      "previousEvidence 只能从 recent_chapters 内的上一章实际正文逐字复制一条短原句，不能引用角色状态、规划、摘要或当前正文，也不能拼接多段；currentEvidence 从本次待审正文复制。比较的两条原句必须支持所选的同一个属性，不能用物品上的文字与收纳动作证明物理形态一致。",
-      "即使本章符合任务单，前文已明确建立的物理事实仍必须保留。没有正文交代的载体或来源变化应报告；前文仅未提及的信息不自动算冲突，先核对完整上下文。verdict=conflict 时在 blockingIssues 添加对应 continuity 问题并用 issueCode 引用，给出保留前文的修复建议。普通局部冲突不升级为全局重规划。",
+    ...((input.previousChapterContent?.trim() || input.characterContinuityBaseline?.length) ? [new HumanMessage([
+      "【必须完成的角色与前后章事实核对】先核对角色章前基线，再对照 recent_chapters 中上一章完整正文和当前正文；不以规划或本章自洽替代连续性。",
+      input.characterContinuityBaseline?.length
+        ? `【角色章前基线】每项 evidence 是允许逐字引用的基线证据：\n${JSON.stringify(input.characterContinuityBaseline)}`
+        : "【角色章前基线】无可用角色基线。",
+      "返回 continuityChecks（选最关键1-2项）：subject、subjectType、attribute、affectedCharacterNames、previousFact、currentFact、previousEvidence、currentEvidence、evidenceSource、classification、verdict、recommendedAction、reason、issueCode。subjectType 只能是 character_profile/character_state/relationship/location/knowledge/resource/timeline/world/other；affectedCharacterNames 只列实际相关角色，没有则返回空数组。evidenceSource 只能是 previous_chapter 或 character_baseline。先提炼同一主体同一属性的旧事实与当前事实，再判断是否相容；物品的物理载体、记载内容和归属是不同属性，不能用合理的归属交接来解释载体或记载内容被改写。优先核对角色定位、身份阵营、目标状态、关系、位置和知晓边界，再核对反复使用的关键资源与时间，不选容易一致的次要细节。",
+      "classification 与 verdict/recommendedAction 必须严格对应：consistent -> consistent/keep_current；legitimate_progression -> consistent/append_state；intentional_deception -> consistent/preserve_fact_and_mark_subjective；new_information -> consistent/append_state；hard_contradiction -> conflict/revise_current 或 manual_review；insufficient_evidence -> uncertain/manual_review。角色撒谎、误判或隐瞒只有在正文明确区分主观表达与客观事实时才算 intentional_deception；无铺垫改变身份、阵营、能力、位置、关系或知情范围属于 hard_contradiction。",
+      "evidenceSource=previous_chapter 时，previousEvidence 只能从 recent_chapters 内的上一章实际正文逐字复制一条短原句；evidenceSource=character_baseline 时，previousEvidence 必须逐字复制角色章前基线某项 evidence，并保持相同 subjectType、attribute 和角色名。不得引用规划、摘要或拼接多段；currentEvidence 从本次待审正文复制。比较证据必须支持同一属性，不能用物品上的文字与收纳动作证明物理形态一致。",
+      "即使本章符合任务单，前文已明确建立的角色与物理事实仍必须保留。前文仅未提及的信息可判为 new_information；有可定位过渡与代价的状态变化可判为 legitimate_progression；证据无法判断时用 insufficient_evidence，不能强行解释。只有 hard_contradiction 填写非空 issueCode，并在 blockingIssues 添加对应 continuity 问题，给出优先保留前文或补足必要过渡的修复建议；其他分类 issueCode=null。普通局部冲突不升级为全局重规划。",
     ].join("\n"))] : []),
     ...(input.repairReviewBaseline ? [new HumanMessage([
       "【局部修文复验清单】",

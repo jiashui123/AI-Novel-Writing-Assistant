@@ -23,7 +23,8 @@ import { normalizeScore } from "../novelP0Utils";
 import { detectProseQuality } from "./proseQuality/ProseQualityDetector";
 import { buildAcceptanceCacheIdentity, isAcceptanceStyleReviewEnabled, applyAcceptanceStyleContext, buildAcceptanceStyleReport,
   getAcceptanceStyleRuleIds, applyAcceptanceStyleRepairPolicy, buildAcceptanceStyleSignals, getAcceptanceNarrativePov, describeAcceptanceFailure,
-  currentChapterReviewRetryBudget, createTransientChapterReviewRetryBudget, ReviewRetryPersistenceError } from "./acceptance";
+  currentChapterReviewRetryBudget, createTransientChapterReviewRetryBudget, ReviewRetryPersistenceError,
+  buildCharacterContinuityBaseline } from "./acceptance";
 
 export interface ChapterAcceptanceAssessmentInput {
   novelId: string;
@@ -360,6 +361,7 @@ export class ChapterAcceptanceAssessmentService {
         targetWordCount: input.targetWordCount ?? null,
         content: input.content,
         previousChapterContent: input.contextPackage.previousChapterContent,
+        characterContinuityBaseline: buildCharacterContinuityBaseline(input.contextPackage),
         styleReviewEnabled: isAcceptanceStyleReviewEnabled(input.contextPackage),
         styleRuleIds: getAcceptanceStyleRuleIds(input.contextPackage),
         expectedNarrativePov: getAcceptanceNarrativePov(input.contextPackage),
@@ -420,6 +422,7 @@ export class ChapterAcceptanceAssessmentService {
               riskTags: assessment.riskTags,
               assetSyncRecommendation: assessment.assetSyncRecommendation,
               repairDirectives: assessment.repairDirectives,
+              continuityChecks: assessment.continuityChecks ?? [],
             }),
             issues: {
               create: issues.map((issue, index) => ({
@@ -478,6 +481,7 @@ export class ChapterAcceptanceAssessmentService {
           riskTags: assessment.riskTags,
           assetSyncRecommendation: assessment.assetSyncRecommendation,
           repairDirectives: assessment.repairDirectives,
+          continuityChecks: assessment.continuityChecks ?? [],
         }),
         issues: issues.map((issue, index) => ({
           id: `${reportId}:${issue.code || "issue"}:${index + 1}`,

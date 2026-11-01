@@ -209,8 +209,10 @@ test('model schema requires a style report field but allows null for disabled ch
 
 test('cross-chapter semantic checks require quotes from both sources and preserve structured continuity conflicts', () => {
   const args={content:'他把信封递给她。',previousChapterContent:'他展开从笔记本撕下的横格纸。',styleReviewEnabled:false};
-  const check={subject:'信件载体',previousFact:'横格纸',currentFact:'信封',previousEvidence:'从笔记本撕下的横格纸',currentEvidence:'信封',
-    verdict:'conflict',reason:'载体变化未交代',issueCode:'carrier_changed'};
+  const check={subject:'信件载体',subjectType:'resource',attribute:'物理载体',affectedCharacterNames:[],
+    previousFact:'横格纸',currentFact:'信封',previousEvidence:'从笔记本撕下的横格纸',currentEvidence:'信封',evidenceSource:'previous_chapter',
+    classification:'hard_contradiction',verdict:'conflict',recommendedAction:'revise_current',
+    reason:'载体变化未交代',issueCode:'carrier_changed'};
   const raw=output({continuityChecks:[check],blockingIssues:[{code:'carrier_changed',category:'continuity',severity:'medium',
     evidence:'信封',fixSuggestion:'保持前文载体并调整本章规划'}]});
   assert.equal(prompt.chapterAcceptanceAssessmentPrompt.postValidate(raw,args).continuityChecks[0].verdict,'conflict');
@@ -220,6 +222,58 @@ test('cross-chapter semantic checks require quotes from both sources and preserv
     assert.throws(()=>prompt.chapterAcceptanceAssessmentPrompt.postValidateFailureRecovery({rawOutput:bad,promptInput:args}),
       error=>error.name==='ChapterContinuityReviewValidationError');
   }
+  for (const invalid of [
+    {...check,classification:'legitimate_progression'},
+    {...check,recommendedAction:'append_state'},
+    {...check,classification:'insufficient_evidence',verdict:'uncertain',recommendedAction:'manual_review'},
+  ]) assert.throws(()=>prompt.chapterAcceptanceAssessmentPrompt.postValidate({...raw,continuityChecks:[invalid]},args),
+    error=>error.name==='ChapterContinuityReviewValidationError');
+  const progression={...check,subject:'林澈',subjectType:'character_state',attribute:'当前目标',affectedCharacterNames:['林澈'],
+    previousFact:'寻找钥匙',currentFact:'拿到钥匙后追查信封',previousEvidence:'从笔记本撕下的横格纸',currentEvidence:'把信封递给她',
+    classification:'legitimate_progression',verdict:'consistent',recommendedAction:'append_state',issueCode:null};
+  assert.equal(prompt.chapterAcceptanceAssessmentPrompt.postValidate({...output(),continuityChecks:[progression]},args)
+    .continuityChecks[0].classification,'legitimate_progression');
+});
+
+test('character baseline is quotable evidence for role conflicts without inventing a previous-chapter quote', () => {
+  const baseline={characterId:'lin',characterName:'林澈',affectedCharacterNames:['林澈'],subjectType:'character_profile',attribute:'阵营',value:'巡夜司',
+    evidence:'林澈｜阵营：巡夜司'};
+  const args={content:'林澈亮出魔教少主令牌，承认自己始终统领魔教。',previousChapterContent:null,
+    characterContinuityBaseline:[baseline],styleReviewEnabled:false};
+  const check={subject:'林澈',subjectType:'character_profile',attribute:'阵营',affectedCharacterNames:['林澈'],
+    previousFact:'巡夜司',currentFact:'魔教少主',previousEvidence:baseline.evidence,currentEvidence:'承认自己始终统领魔教',
+    evidenceSource:'character_baseline',classification:'hard_contradiction',verdict:'conflict',recommendedAction:'revise_current',
+    reason:'角色阵营被无铺垫改写',issueCode:'character_faction_changed'};
+  const raw=output({continuityChecks:[check],blockingIssues:[{code:'character_faction_changed',category:'continuity',severity:'high',
+    evidence:'承认自己始终统领魔教',fixSuggestion:'保留巡夜司身份，或补足可核对的身份转变依据'}]});
+  assert.equal(prompt.chapterAcceptanceAssessmentPrompt.postValidate(raw,args).continuityChecks[0].evidenceSource,'character_baseline');
+  assert.throws(()=>prompt.chapterAcceptanceAssessmentPrompt.postValidate({...raw,continuityChecks:[{...check,
+    previousEvidence:'林澈属于巡夜司'}]},args),error=>error.name==='ChapterContinuityReviewValidationError');
+});
+
+test('character continuity baseline uses only the chapter snapshot and keeps source labels', () => {
+  const facts=acceptance.buildCharacterContinuityBaseline({characterRoster:[],characterHardFacts:[],
+    chapterReviewContext:{participants:[{id:'lin',name:'林澈',role:'主角',personality:'谨慎'}],characterHardFacts:[{
+      characterId:'lin',name:'林澈',role:'主角',factionLabel:'巡夜司',currentLocation:'北门',
+      locationState:{currentLocation:'北门',source:'chapter',sourceChapterId:'c8',sourceChapterOrder:8,contentHash:'h',evidence:'抵达北门',concern:null},
+      prohibitions:[],pendingReviewFields:[]}],activeRelationStages:[]},stateSnapshot:null});
+  assert.ok(facts.some(item=>item.attribute==='阵营'&&item.evidence==='林澈｜阵营：巡夜司'));
+  assert.ok(facts.some(item=>item.attribute==='当前位置'&&item.evidence.includes('第8章正文')));
+  assert.equal(facts.some(item=>item.characterName==='未参与角色'),false);
+});
+
+test('continuity classifications remain attached to acceptance reports for source-page diagnosis', async () => {
+  const check={subject:'林澈',subjectType:'character_profile',attribute:'阵营',affectedCharacterNames:['林澈'],
+    previousFact:'巡夜司',currentFact:'魔教少主',previousEvidence:'林澈｜阵营：巡夜司',currentEvidence:'魔教少主',
+    evidenceSource:'character_baseline',classification:'hard_contradiction',verdict:'conflict',recommendedAction:'revise_current',
+    reason:'角色阵营被无铺垫改写',issueCode:'character_faction_changed'};
+  const h=service(output({status:'repairable',continuityChecks:[check],blockingIssues:[{code:'character_faction_changed',
+    category:'continuity',severity:'high',evidence:'魔教少主',fixSuggestion:'保留既有阵营'}],
+    repairDirectives:[{mode:'patch',target:'continuity',instruction:'保留既有阵营'}]}));
+  const result=await h.instance.assess(input(context(false)));
+  const metadata=JSON.parse(result.auditReports.find(report=>report.auditType==='continuity').legacyScoreJson);
+  assert.equal(metadata.continuityChecks[0].classification,'hard_contradiction');
+  assert.equal(metadata.continuityChecks[0].recommendedAction,'revise_current');
 });
 
 test('AI refusal and narrative diagnosis retain structured observations without spending automatic repair work', async () => {
